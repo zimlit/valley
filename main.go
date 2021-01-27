@@ -12,6 +12,7 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("> ")
 		text, _ := reader.ReadString('\n')
-		lexer.NewLexer(text)
+		l := lexer.NewLexer(text)
+		fmt.Println(l.Lex())
 	}
 }

@@ -44,6 +44,7 @@ const (
 	char
 )
 
+// Token represents a token
 type Token struct {
 	kind    int
 	col     int
@@ -51,6 +52,7 @@ type Token struct {
 	literal string
 }
 
+// NewToken constructs a token
 func NewToken(kind int, col int, line int, literal string) Token {
 	return Token{
 		kind,
@@ -59,3 +61,6 @@ func NewToken(kind int, col int, line int, literal string) Token {
 		literal,
 	}
 }
+
+// Line an alias for a slice of tokens
+type Line []Token
