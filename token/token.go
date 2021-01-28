@@ -16,16 +16,22 @@ const (
 	BitOr
 	BitAnd
 	BitNot
+	Rshift
+	Lshift
 	LogNot
 	LogAnd
 	LogOr
+	Dot
 
 	// nonop chars
 	Arrow
+	FatArrow
 	Lparen
 	Rparen
 	Lbrace
 	Rbrace
+	Comma
+	Semicolon
 
 	// keywords
 	Let

@@ -28,6 +28,13 @@ func (lexer *Lexer) advance() rune {
 	return rune('\000')
 }
 
+func (lexer *Lexer) peek() rune {
+	if lexer.pos < len(lexer.source) {
+		return runeAt(lexer.source, lexer.pos)
+	}
+	return rune('\000')
+}
+
 // Lex returns an slice of lines
 func (lexer *Lexer) Lex() ([]token.Line, error) {
 	lines := []token.Line{}
@@ -40,6 +47,51 @@ func (lexer *Lexer) Lex() ([]token.Line, error) {
 			lexer.line++
 		case rune('+'):
 			line = append(line, token.NewToken(token.Plus, lexer.pos, lexer.line, "+"))
+		case rune('*'):
+			line = append(line, token.NewToken(token.Star, lexer.pos, lexer.line, "*"))
+		case rune('/'):
+			line = append(line, token.NewToken(token.Slash, lexer.pos, lexer.line, "/"))
+		case rune(','):
+			line = append(line, token.NewToken(token.Comma, lexer.pos, lexer.line, ","))
+		case rune('.'):
+			line = append(line, token.NewToken(token.Dot, lexer.pos, lexer.line, "."))
+		case rune(';'):
+			line = append(line, token.NewToken(token.Semicolon, lexer.pos, lexer.line, ";"))
+		case rune('('):
+			line = append(line, token.NewToken(token.Lparen, lexer.pos, lexer.line, "("))
+		case rune(')'):
+			line = append(line, token.NewToken(token.Rparen, lexer.pos, lexer.line, ")"))
+		case rune('{'):
+			line = append(line, token.NewToken(token.Lbrace, lexer.pos, lexer.line, "{"))
+		case rune('}'):
+			line = append(line, token.NewToken(token.Rbrace, lexer.pos, lexer.line, "}"))
+		case rune('>'):
+			if lexer.peek() == '=' {
+				line = append(line, token.NewToken(token.GreaterEq, lexer.pos, lexer.line, ">="))
+				lexer.pos++
+			} else if lexer.peek() == '>' {
+				line = append(line, token.NewToken(token.GreaterEq, lexer.pos, lexer.line, ">>"))
+				lexer.pos++
+			} else {
+				line = append(line, token.NewToken(token.Greater, lexer.pos, lexer.line, ">"))
+			}
+		case rune('<'):
+			if lexer.peek() == '=' {
+				line = append(line, token.NewToken(token.LessEq, lexer.pos, lexer.line, "<="))
+				lexer.pos++
+			} else if lexer.peek() == '<' {
+				line = append(line, token.NewToken(token.Lshift, lexer.pos, lexer.line, "<<"))
+				lexer.pos++
+			} else {
+				line = append(line, token.NewToken(token.Less, lexer.pos, lexer.line, "<"))
+			}
+		case rune('-'):
+			if lexer.peek() == '>' {
+				line = append(line, token.NewToken(token.Arrow, lexer.pos, lexer.line, "->"))
+				lexer.pos++
+			} else {
+				line = append(line, token.NewToken(token.Minus, lexer.pos, lexer.line, "-"))
+			}
 		}
 	}
 
