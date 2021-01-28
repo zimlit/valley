@@ -6,7 +6,6 @@ import "valley/token"
 type Lexer struct {
 	currentLine string
 	line        int
-	col         int
 	pos         int
 	source      string
 }
@@ -16,7 +15,6 @@ func NewLexer(source string) Lexer {
 	return Lexer{
 		"",
 		1,
-		1,
 		0,
 		source,
 	}
@@ -24,7 +22,6 @@ func NewLexer(source string) Lexer {
 
 func (lexer *Lexer) advance() rune {
 	lexer.pos++
-	lexer.col++
 	if lexer.pos <= len(lexer.source) {
 		return runeAt(lexer.source, lexer.pos-1)
 	}
@@ -40,6 +37,9 @@ func (lexer *Lexer) Lex() ([]token.Line, error) {
 		case rune('\n'):
 			lines = append(lines, line)
 			line = []token.Token{}
+			lexer.line++
+		case rune('+'):
+			line = append(line, token.NewToken(token.Plus, lexer.pos, lexer.line, "+"))
 		}
 	}
 

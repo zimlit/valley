@@ -2,46 +2,46 @@ package token
 
 const (
 	// ops
-	plus = iota
-	minus
-	star
-	slash
-	greater
-	less
-	greaterEq
-	lessEq
-	eq
-	eqEq
-	notEq
-	bitOr
-	bitAnd
-	bitNot
-	logNot
-	logAnd
-	logOr
+	Plus = iota
+	Minus
+	Star
+	Slash
+	Greater
+	Less
+	GreaterEq
+	LessEq
+	Eq
+	EqEq
+	NotEq
+	BitOr
+	BitAnd
+	BitNot
+	LogNot
+	LogAnd
+	LogOr
 
 	// nonop chars
-	arrow
-	lparen
-	rparen
-	lbrace
-	rbrace
+	Arrow
+	Lparen
+	Rparen
+	Lbrace
+	Rbrace
 
 	// keywords
-	let
-	mut
-	class
-	ifK
-	elseK
-	whileK
-	forK
-	typeK
+	Let
+	Mut
+	Class
+	IfK
+	ElseK
+	WhileK
+	OrK
+	TypeK
 
 	//literals
-	intL
-	ident
-	stringL
-	char
+	IntL
+	Ident
+	StringL
+	Char
 )
 
 // Token represents a token
