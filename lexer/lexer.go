@@ -74,6 +74,9 @@ func (lexer *Lexer) Lex() ([]token.Line, error) {
 			lines = append(lines, line)
 			line = []token.Token{}
 			lexer.line++
+		case rune(' '):
+		case rune('\t'):
+		case rune('\r'):
 		case rune('+'):
 			line = append(line, token.NewToken(token.Plus, lexer.pos, lexer.line, "+"))
 		case rune('*'):
