@@ -122,6 +122,7 @@ func (lexer *Lexer) Lex() ([]token.Line, Errors) {
 	line := []token.Token{}
 	errs := Errors{[]string{}}
 	RawErrs := []errPos{}
+	start := 0
 
 	for !lexer.isAtEnd() {
 		c := lexer.advance()
@@ -132,19 +133,20 @@ func (lexer *Lexer) Lex() ([]token.Line, Errors) {
 			line = []token.Token{}
 			for _, err := range RawErrs {
 				if err.line == lexer.line {
-					message := fmt.Sprint(err.line, ": ", lexer.source[err.col-1:err.col], "\n")
-					message2 := ""
+					message := fmt.Sprint(err.line, " | ", lexer.source[start:lexer.pos])
 					for i := range lexer.source {
 						if i == err.col {
-							message += fmt.Sprint("  ^", err.message, "\n")
+							message += fmt.Sprint("   ^ ", err.message, "\n\n")
 						} else {
-							message += " "
+							if i < err.col {
+								message += " "
+							}
 						}
 					}
-					message += message2
 					errs.Raw = append(errs.Raw, message)
 				}
 			}
+			start = lexer.pos
 			lexer.line++
 		case rune(' '):
 		case rune('\t'):
@@ -239,7 +241,7 @@ func (lexer *Lexer) Lex() ([]token.Line, Errors) {
 			} else if unicode.IsDigit(c) {
 				line = append(line, lexer.number())
 			} else {
-				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.line, "unexpected char"))
+				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.line, fmt.Sprint("unexpected char ", string(c))))
 			}
 		}
 	}
