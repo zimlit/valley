@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"unicode"
 	"valley/token"
 )
@@ -39,6 +40,13 @@ func (lexer *Lexer) peek() rune {
 	return rune('\000')
 }
 
+func (lexer *Lexer) peekNext() rune {
+	if !lexer.isAtEnd() {
+		return runeAt(lexer.source, lexer.pos+1)
+	}
+	return rune('\000')
+}
+
 func (lexer *Lexer) identOrKey() token.Token {
 	keywords := map[string]int{
 		"let":   token.Let,
@@ -60,6 +68,25 @@ func (lexer *Lexer) identOrKey() token.Token {
 		t = token.Ident
 	}
 	return token.NewToken(t, start, lexer.line, text)
+}
+
+func (lexer *Lexer) number() token.Token {
+	start := lexer.pos - 1
+	t := token.IntL
+	for unicode.IsDigit(lexer.peek()) {
+		lexer.advance()
+		fmt.Println("nd")
+	}
+
+	if lexer.peek() == '.' && unicode.IsDigit(lexer.peekNext()) {
+		t = token.FloatL
+		lexer.advance()
+		for unicode.IsDigit(lexer.peek()) {
+			lexer.advance()
+		}
+	}
+
+	return token.NewToken(t, start+1, lexer.line, lexer.source[start:lexer.pos])
 }
 
 // Lex returns an slice of lines
@@ -164,6 +191,8 @@ func (lexer *Lexer) Lex() ([]token.Line, error) {
 		default:
 			if unicode.IsLetter(c) || c == '_' {
 				line = append(line, lexer.identOrKey())
+			} else if unicode.IsDigit(c) {
+				line = append(line, lexer.number())
 			}
 		}
 	}

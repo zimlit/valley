@@ -47,6 +47,7 @@ const (
 
 	//literals
 	IntL
+	FloatL
 	Ident
 	StringL
 	Char
