@@ -22,6 +22,7 @@ const (
 	LogAnd
 	LogOr
 	Dot
+	At
 
 	// nonop chars
 	Arrow
@@ -32,6 +33,7 @@ const (
 	Rbrace
 	Comma
 	Semicolon
+	ColonColon
 
 	// keywords
 	Let
@@ -40,7 +42,7 @@ const (
 	IfK
 	ElseK
 	WhileK
-	OrK
+	ForK
 	TypeK
 
 	//literals
