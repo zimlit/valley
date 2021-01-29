@@ -21,24 +21,24 @@ func (errs Errors) Error() string {
 
 type errPos struct {
 	col     int
-	line    int
+	tokens  int
 	message string
 }
 
-func newErrPos(col int, line int, message string) errPos {
+func newErrPos(col int, tokens int, message string) errPos {
 	return errPos{
 		col,
-		line,
+		tokens,
 		message,
 	}
 }
 
 // Lexer represents the lexer
 type Lexer struct {
-	currentLine string
-	line        int
-	pos         int
-	source      string
+	currenttokens string
+	tokens        int
+	pos           int
+	source        string
 }
 
 // NewLexer constructs a lexer
@@ -94,7 +94,7 @@ func (lexer *Lexer) identOrKey() token.Token {
 	if t == 0 {
 		t = token.Ident
 	}
-	return token.NewToken(t, start, lexer.line, text)
+	return token.NewToken(t, start, lexer.tokens, text)
 }
 
 func (lexer *Lexer) number() token.Token {
@@ -113,13 +113,13 @@ func (lexer *Lexer) number() token.Token {
 		}
 	}
 
-	return token.NewToken(t, start+1, lexer.line, lexer.source[start:lexer.pos])
+	return token.NewToken(t, start+1, lexer.tokens, lexer.source[start:lexer.pos])
 }
 
-// Lex returns an slice of lines
-func (lexer *Lexer) Lex() ([]token.Line, Errors) {
-	lines := []token.Line{}
-	line := []token.Token{}
+// Lex returns an slice of tokenss
+func (lexer *Lexer) Lex() ([]token.Token, []string, Errors) {
+	lines := []string{}
+	tokens := []token.Token{}
 	errs := Errors{[]string{}}
 	RawErrs := []errPos{}
 	start := 0
@@ -129,11 +129,10 @@ func (lexer *Lexer) Lex() ([]token.Line, Errors) {
 		switch c {
 		// single char tokens
 		case rune('\n'):
-			lines = append(lines, line)
-			line = []token.Token{}
+			lines = append(lines, lexer.source[start:lexer.pos-1])
 			for _, err := range RawErrs {
-				if err.line == lexer.line {
-					message := fmt.Sprint(err.line, " | ", lexer.source[start:lexer.pos])
+				if err.tokens == lexer.tokens {
+					message := fmt.Sprint(err.tokens, " | ", lexer.source[start:lexer.pos])
 					for i := range lexer.source {
 						if i == err.col {
 							message += fmt.Sprint("   ^ ", err.message, "\n\n")
@@ -147,106 +146,106 @@ func (lexer *Lexer) Lex() ([]token.Line, Errors) {
 				}
 			}
 			start = lexer.pos
-			lexer.line++
+			lexer.tokens++
 		case rune(' '):
 		case rune('\t'):
 		case rune('\r'):
 		case rune('+'):
-			line = append(line, token.NewToken(token.Plus, lexer.pos, lexer.line, "+"))
+			tokens = append(tokens, token.NewToken(token.Plus, lexer.pos, lexer.tokens, "+"))
 		case rune('*'):
-			line = append(line, token.NewToken(token.Star, lexer.pos, lexer.line, "*"))
+			tokens = append(tokens, token.NewToken(token.Star, lexer.pos, lexer.tokens, "*"))
 		case rune('/'):
-			line = append(line, token.NewToken(token.Slash, lexer.pos, lexer.line, "/"))
+			tokens = append(tokens, token.NewToken(token.Slash, lexer.pos, lexer.tokens, "/"))
 		case rune(','):
-			line = append(line, token.NewToken(token.Comma, lexer.pos, lexer.line, ","))
+			tokens = append(tokens, token.NewToken(token.Comma, lexer.pos, lexer.tokens, ","))
 		case rune('.'):
-			line = append(line, token.NewToken(token.Dot, lexer.pos, lexer.line, "."))
+			tokens = append(tokens, token.NewToken(token.Dot, lexer.pos, lexer.tokens, "."))
 		case rune(';'):
-			line = append(line, token.NewToken(token.Semicolon, lexer.pos, lexer.line, ";"))
+			tokens = append(tokens, token.NewToken(token.Semicolon, lexer.pos, lexer.tokens, ";"))
 		case rune('('):
-			line = append(line, token.NewToken(token.Lparen, lexer.pos, lexer.line, "("))
+			tokens = append(tokens, token.NewToken(token.Lparen, lexer.pos, lexer.tokens, "("))
 		case rune(')'):
-			line = append(line, token.NewToken(token.Rparen, lexer.pos, lexer.line, ")"))
+			tokens = append(tokens, token.NewToken(token.Rparen, lexer.pos, lexer.tokens, ")"))
 		case rune('{'):
-			line = append(line, token.NewToken(token.Lbrace, lexer.pos, lexer.line, "{"))
+			tokens = append(tokens, token.NewToken(token.Lbrace, lexer.pos, lexer.tokens, "{"))
 		case rune('}'):
-			line = append(line, token.NewToken(token.Rbrace, lexer.pos, lexer.line, "}"))
+			tokens = append(tokens, token.NewToken(token.Rbrace, lexer.pos, lexer.tokens, "}"))
 		case rune('@'):
-			line = append(line, token.NewToken(token.At, lexer.pos, lexer.line, "@"))
+			tokens = append(tokens, token.NewToken(token.At, lexer.pos, lexer.tokens, "@"))
 		// two char tokens
 		case rune('>'):
 			if lexer.peek() == '=' {
-				line = append(line, token.NewToken(token.GreaterEq, lexer.pos, lexer.line, ">="))
+				tokens = append(tokens, token.NewToken(token.GreaterEq, lexer.pos, lexer.tokens, ">="))
 				lexer.pos++
 			} else if lexer.peek() == '>' {
-				line = append(line, token.NewToken(token.GreaterEq, lexer.pos, lexer.line, ">>"))
+				tokens = append(tokens, token.NewToken(token.GreaterEq, lexer.pos, lexer.tokens, ">>"))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.Greater, lexer.pos, lexer.line, ">"))
+				tokens = append(tokens, token.NewToken(token.Greater, lexer.pos, lexer.tokens, ">"))
 			}
 		case rune('<'):
 			if lexer.peek() == '=' {
-				line = append(line, token.NewToken(token.LessEq, lexer.pos, lexer.line, "<="))
+				tokens = append(tokens, token.NewToken(token.LessEq, lexer.pos, lexer.tokens, "<="))
 				lexer.pos++
 			} else if lexer.peek() == '<' {
-				line = append(line, token.NewToken(token.Lshift, lexer.pos, lexer.line, "<<"))
+				tokens = append(tokens, token.NewToken(token.Lshift, lexer.pos, lexer.tokens, "<<"))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.Less, lexer.pos, lexer.line, "<"))
+				tokens = append(tokens, token.NewToken(token.Less, lexer.pos, lexer.tokens, "<"))
 			}
 		case rune('-'):
 			if lexer.peek() == '>' {
-				line = append(line, token.NewToken(token.Arrow, lexer.pos, lexer.line, "->"))
+				tokens = append(tokens, token.NewToken(token.Arrow, lexer.pos, lexer.tokens, "->"))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.Minus, lexer.pos, lexer.line, "-"))
+				tokens = append(tokens, token.NewToken(token.Minus, lexer.pos, lexer.tokens, "-"))
 			}
 		case rune('='):
 			if lexer.peek() == '=' {
-				line = append(line, token.NewToken(token.EqEq, lexer.pos, lexer.line, "=="))
+				tokens = append(tokens, token.NewToken(token.EqEq, lexer.pos, lexer.tokens, "=="))
 				lexer.pos++
 			} else if lexer.peek() == '>' {
-				line = append(line, token.NewToken(token.FatArrow, lexer.pos, lexer.line, "=>"))
+				tokens = append(tokens, token.NewToken(token.FatArrow, lexer.pos, lexer.tokens, "=>"))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.Eq, lexer.pos, lexer.line, "="))
+				tokens = append(tokens, token.NewToken(token.Eq, lexer.pos, lexer.tokens, "="))
 			}
 		case rune('!'):
 			if lexer.peek() == '=' {
-				line = append(line, token.NewToken(token.NotEq, lexer.pos, lexer.line, "!="))
+				tokens = append(tokens, token.NewToken(token.NotEq, lexer.pos, lexer.tokens, "!="))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.LogNot, lexer.pos, lexer.line, "!"))
+				tokens = append(tokens, token.NewToken(token.LogNot, lexer.pos, lexer.tokens, "!"))
 			}
 		case rune('|'):
 			if lexer.peek() == '|' {
-				line = append(line, token.NewToken(token.LogOr, lexer.pos, lexer.line, "||"))
+				tokens = append(tokens, token.NewToken(token.LogOr, lexer.pos, lexer.tokens, "||"))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.BitOr, lexer.pos, lexer.line, "|"))
+				tokens = append(tokens, token.NewToken(token.BitOr, lexer.pos, lexer.tokens, "|"))
 			}
 		case rune('&'):
 			if lexer.peek() == '&' {
-				line = append(line, token.NewToken(token.LogOr, lexer.pos, lexer.line, "&&"))
+				tokens = append(tokens, token.NewToken(token.LogOr, lexer.pos, lexer.tokens, "&&"))
 				lexer.pos++
 			} else {
-				line = append(line, token.NewToken(token.BitAnd, lexer.pos, lexer.line, "&"))
+				tokens = append(tokens, token.NewToken(token.BitAnd, lexer.pos, lexer.tokens, "&"))
 			}
 		case rune('~'):
-			line = append(line, token.NewToken(token.BitNot, lexer.pos, lexer.line, "~"))
+			tokens = append(tokens, token.NewToken(token.BitNot, lexer.pos, lexer.tokens, "~"))
 			// other
 		default:
 			if unicode.IsLetter(c) || c == '_' {
-				line = append(line, lexer.identOrKey())
+				tokens = append(tokens, lexer.identOrKey())
 			} else if unicode.IsDigit(c) {
-				line = append(line, lexer.number())
+				tokens = append(tokens, lexer.number())
 			} else {
-				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.line, fmt.Sprint("unexpected char ", string(c))))
+				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.tokens, fmt.Sprint("unexpected char ", string(c))))
 			}
 		}
 	}
 
-	return lines, errs
+	return tokens, lines, errs
 }
 
 func runeAt(str string, idx int) rune {

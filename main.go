@@ -16,7 +16,7 @@ func main() {
 			break
 		}
 		l := lexer.NewLexer(text)
-		tokens, err := l.Lex()
+		tokens, _, err := l.Lex()
 		if len(err.Raw) != 0 {
 			fmt.Println(err)
 			continue
