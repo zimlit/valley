@@ -6,6 +6,33 @@ import (
 	"valley/token"
 )
 
+// Errors an alias for error handling
+type Errors struct {
+	Raw []string
+}
+
+func (errs Errors) Error() string {
+	message := ""
+	for _, err := range errs.Raw {
+		message += err
+	}
+	return message
+}
+
+type errPos struct {
+	col     int
+	line    int
+	message string
+}
+
+func newErrPos(col int, line int, message string) errPos {
+	return errPos{
+		col,
+		line,
+		message,
+	}
+}
+
 // Lexer represents the lexer
 type Lexer struct {
 	currentLine string
@@ -90,9 +117,12 @@ func (lexer *Lexer) number() token.Token {
 }
 
 // Lex returns an slice of lines
-func (lexer *Lexer) Lex() ([]token.Line, error) {
+func (lexer *Lexer) Lex() ([]token.Line, Errors) {
 	lines := []token.Line{}
 	line := []token.Token{}
+	errs := Errors{[]string{}}
+	RawErrs := []errPos{}
+
 	for !lexer.isAtEnd() {
 		c := lexer.advance()
 		switch c {
@@ -100,6 +130,21 @@ func (lexer *Lexer) Lex() ([]token.Line, error) {
 		case rune('\n'):
 			lines = append(lines, line)
 			line = []token.Token{}
+			for _, err := range RawErrs {
+				if err.line == lexer.line {
+					message := fmt.Sprint(err.line, ": ", lexer.source[err.col-1:err.col], "\n")
+					message2 := ""
+					for i := range lexer.source {
+						if i == err.col {
+							message += fmt.Sprint("  ^", err.message, "\n")
+						} else {
+							message += " "
+						}
+					}
+					message += message2
+					errs.Raw = append(errs.Raw, message)
+				}
+			}
 			lexer.line++
 		case rune(' '):
 		case rune('\t'):
@@ -193,11 +238,13 @@ func (lexer *Lexer) Lex() ([]token.Line, error) {
 				line = append(line, lexer.identOrKey())
 			} else if unicode.IsDigit(c) {
 				line = append(line, lexer.number())
+			} else {
+				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.line, "unexpected char"))
 			}
 		}
 	}
 
-	return lines, nil
+	return lines, errs
 }
 
 func runeAt(str string, idx int) rune {
