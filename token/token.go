@@ -6,6 +6,12 @@ const (
 	Minus
 	Star
 	Slash
+	PlusEq
+	MinusEq
+	StarEq
+	SlashEq
+	PlusPlus
+	MinusMinus
 	Greater
 	Less
 	GreaterEq
@@ -32,7 +38,6 @@ const (
 	Lbrace
 	Rbrace
 	Comma
-	Semicolon
 	ColonColon
 
 	// keywords

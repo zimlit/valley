@@ -21,14 +21,14 @@ func (errs Errors) Error() string {
 
 type errPos struct {
 	col     int
-	tokens  int
+	line    int
 	message string
 }
 
-func newErrPos(col int, tokens int, message string) errPos {
+func newErrPos(col int, line int, message string) errPos {
 	return errPos{
 		col,
-		tokens,
+		line,
 		message,
 	}
 }
@@ -36,7 +36,7 @@ func newErrPos(col int, tokens int, message string) errPos {
 // Lexer represents the lexer
 type Lexer struct {
 	currenttokens string
-	tokens        int
+	line          int
 	pos           int
 	source        string
 }
@@ -94,7 +94,7 @@ func (lexer *Lexer) identOrKey() token.Token {
 	if t == 0 {
 		t = token.Ident
 	}
-	return token.NewToken(t, start, lexer.tokens, text)
+	return token.NewToken(t, start, lexer.line, text)
 }
 
 func (lexer *Lexer) number() token.Token {
@@ -113,7 +113,26 @@ func (lexer *Lexer) number() token.Token {
 		}
 	}
 
-	return token.NewToken(t, start+1, lexer.tokens, lexer.source[start:lexer.pos])
+	return token.NewToken(t, start+1, lexer.line, lexer.source[start:lexer.pos])
+}
+
+func (lexer *Lexer) string() (token.Token, errPos) {
+	start := lexer.pos
+	for lexer.peek() != '"' && !lexer.isAtEnd() {
+		if lexer.peek() == '\n' {
+			return token.NewToken(token.StringL, start, lexer.line, ""), newErrPos(start, lexer.line, "unterminated string")
+		}
+
+		lexer.advance()
+	}
+
+	if lexer.isAtEnd() {
+		return token.NewToken(token.StringL, start, lexer.line, ""), newErrPos(start, lexer.line, "unterminated string")
+	}
+
+	lexer.advance()
+
+	return token.NewToken(token.StringL, start, lexer.line, lexer.source[start:lexer.pos-1]), newErrPos(start, lexer.line, "")
 }
 
 // Lex returns an slice of tokenss
@@ -131,8 +150,8 @@ func (lexer *Lexer) Lex() ([]token.Token, []string, Errors) {
 		case rune('\n'):
 			lines = append(lines, lexer.source[start:lexer.pos-1])
 			for _, err := range RawErrs {
-				if err.tokens == lexer.tokens {
-					message := fmt.Sprint(err.tokens, " | ", lexer.source[start:lexer.pos])
+				if err.line == lexer.line {
+					message := fmt.Sprint(err.line, " | ", lexer.source[start:lexer.pos])
 					for i := range lexer.source {
 						if i == err.col {
 							message += fmt.Sprint("   ^ ", err.message, "\n\n")
@@ -146,101 +165,155 @@ func (lexer *Lexer) Lex() ([]token.Token, []string, Errors) {
 				}
 			}
 			start = lexer.pos
-			lexer.tokens++
-		case rune(' '):
-		case rune('\t'):
-		case rune('\r'):
-		case rune('+'):
-			tokens = append(tokens, token.NewToken(token.Plus, lexer.pos, lexer.tokens, "+"))
-		case rune('*'):
-			tokens = append(tokens, token.NewToken(token.Star, lexer.pos, lexer.tokens, "*"))
-		case rune('/'):
-			tokens = append(tokens, token.NewToken(token.Slash, lexer.pos, lexer.tokens, "/"))
-		case rune(','):
-			tokens = append(tokens, token.NewToken(token.Comma, lexer.pos, lexer.tokens, ","))
-		case rune('.'):
-			tokens = append(tokens, token.NewToken(token.Dot, lexer.pos, lexer.tokens, "."))
-		case rune(';'):
-			tokens = append(tokens, token.NewToken(token.Semicolon, lexer.pos, lexer.tokens, ";"))
-		case rune('('):
-			tokens = append(tokens, token.NewToken(token.Lparen, lexer.pos, lexer.tokens, "("))
-		case rune(')'):
-			tokens = append(tokens, token.NewToken(token.Rparen, lexer.pos, lexer.tokens, ")"))
-		case rune('{'):
-			tokens = append(tokens, token.NewToken(token.Lbrace, lexer.pos, lexer.tokens, "{"))
-		case rune('}'):
-			tokens = append(tokens, token.NewToken(token.Rbrace, lexer.pos, lexer.tokens, "}"))
-		case rune('@'):
-			tokens = append(tokens, token.NewToken(token.At, lexer.pos, lexer.tokens, "@"))
-		// two char tokens
-		case rune('>'):
-			if lexer.peek() == '=' {
-				tokens = append(tokens, token.NewToken(token.GreaterEq, lexer.pos, lexer.tokens, ">="))
+			lexer.line++
+		case ' ':
+		case '\t':
+		case '\r':
+		case ';':
+		case ',':
+			tokens = append(tokens, token.NewToken(token.Comma, lexer.pos, lexer.line, ","))
+		case '.':
+			tokens = append(tokens, token.NewToken(token.Dot, lexer.pos, lexer.line, "."))
+		case '(':
+			tokens = append(tokens, token.NewToken(token.Lparen, lexer.pos, lexer.line, "("))
+		case ')':
+			tokens = append(tokens, token.NewToken(token.Rparen, lexer.pos, lexer.line, ")"))
+		case '{':
+			tokens = append(tokens, token.NewToken(token.Lbrace, lexer.pos, lexer.line, "{"))
+		case '}':
+			tokens = append(tokens, token.NewToken(token.Rbrace, lexer.pos, lexer.line, "}"))
+		case '@':
+			tokens = append(tokens, token.NewToken(token.At, lexer.pos, lexer.line, "@"))
+		case '~':
+			tokens = append(tokens, token.NewToken(token.BitNot, lexer.pos, lexer.line, "~"))
+		// two or three char tokens
+		case '+':
+			if lexer.peek() == '+' {
+				tokens = append(tokens, token.NewToken(token.PlusPlus, lexer.pos, lexer.line, "++"))
 				lexer.pos++
-			} else if lexer.peek() == '>' {
-				tokens = append(tokens, token.NewToken(token.GreaterEq, lexer.pos, lexer.tokens, ">>"))
+			} else if lexer.peek() == '=' {
+				tokens = append(tokens, token.NewToken(token.PlusEq, lexer.pos, lexer.line, "+="))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.Greater, lexer.pos, lexer.tokens, ">"))
+				tokens = append(tokens, token.NewToken(token.Plus, lexer.pos, lexer.line, "+"))
 			}
-		case rune('<'):
+		case '*':
 			if lexer.peek() == '=' {
-				tokens = append(tokens, token.NewToken(token.LessEq, lexer.pos, lexer.tokens, "<="))
+				tokens = append(tokens, token.NewToken(token.StarEq, lexer.pos, lexer.line, "*="))
+				lexer.pos++
+			} else {
+				tokens = append(tokens, token.NewToken(token.Star, lexer.pos, lexer.line, "*"))
+			}
+		case '/':
+			if lexer.peek() == '=' {
+				tokens = append(tokens, token.NewToken(token.SlashEq, lexer.pos, lexer.line, "/="))
+				lexer.pos++
+			} else {
+				tokens = append(tokens, token.NewToken(token.Slash, lexer.pos, lexer.line, "/"))
+			}
+		case '>':
+			if lexer.peek() == '=' {
+				tokens = append(tokens, token.NewToken(token.GreaterEq, lexer.pos, lexer.line, ">="))
+				lexer.pos++
+			} else if lexer.peek() == '>' {
+				tokens = append(tokens, token.NewToken(token.GreaterEq, lexer.pos, lexer.line, ">>"))
+				lexer.pos++
+			} else {
+				tokens = append(tokens, token.NewToken(token.Greater, lexer.pos, lexer.line, ">"))
+			}
+		case '<':
+			if lexer.peek() == '=' {
+				tokens = append(tokens, token.NewToken(token.LessEq, lexer.pos, lexer.line, "<="))
 				lexer.pos++
 			} else if lexer.peek() == '<' {
-				tokens = append(tokens, token.NewToken(token.Lshift, lexer.pos, lexer.tokens, "<<"))
+				tokens = append(tokens, token.NewToken(token.Lshift, lexer.pos, lexer.line, "<<"))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.Less, lexer.pos, lexer.tokens, "<"))
+				tokens = append(tokens, token.NewToken(token.Less, lexer.pos, lexer.line, "<"))
 			}
-		case rune('-'):
+		case '-':
 			if lexer.peek() == '>' {
-				tokens = append(tokens, token.NewToken(token.Arrow, lexer.pos, lexer.tokens, "->"))
+				tokens = append(tokens, token.NewToken(token.Arrow, lexer.pos, lexer.line, "->"))
+				lexer.pos++
+			} else if lexer.peek() == '-' {
+				tokens = append(tokens, token.NewToken(token.MinusMinus, lexer.pos, lexer.line, "--"))
+				lexer.pos++
+			} else if lexer.peek() == '=' {
+				tokens = append(tokens, token.NewToken(token.MinusEq, lexer.pos, lexer.line, "-="))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.Minus, lexer.pos, lexer.tokens, "-"))
+				tokens = append(tokens, token.NewToken(token.Minus, lexer.pos, lexer.line, "-"))
 			}
-		case rune('='):
+		case '=':
 			if lexer.peek() == '=' {
-				tokens = append(tokens, token.NewToken(token.EqEq, lexer.pos, lexer.tokens, "=="))
+				tokens = append(tokens, token.NewToken(token.EqEq, lexer.pos, lexer.line, "=="))
 				lexer.pos++
 			} else if lexer.peek() == '>' {
-				tokens = append(tokens, token.NewToken(token.FatArrow, lexer.pos, lexer.tokens, "=>"))
+				tokens = append(tokens, token.NewToken(token.FatArrow, lexer.pos, lexer.line, "=>"))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.Eq, lexer.pos, lexer.tokens, "="))
+				tokens = append(tokens, token.NewToken(token.Eq, lexer.pos, lexer.line, "="))
 			}
-		case rune('!'):
+		case '!':
 			if lexer.peek() == '=' {
-				tokens = append(tokens, token.NewToken(token.NotEq, lexer.pos, lexer.tokens, "!="))
+				tokens = append(tokens, token.NewToken(token.NotEq, lexer.pos, lexer.line, "!="))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.LogNot, lexer.pos, lexer.tokens, "!"))
+				tokens = append(tokens, token.NewToken(token.LogNot, lexer.pos, lexer.line, "!"))
 			}
-		case rune('|'):
+		case '|':
 			if lexer.peek() == '|' {
-				tokens = append(tokens, token.NewToken(token.LogOr, lexer.pos, lexer.tokens, "||"))
+				tokens = append(tokens, token.NewToken(token.LogOr, lexer.pos, lexer.line, "||"))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.BitOr, lexer.pos, lexer.tokens, "|"))
+				tokens = append(tokens, token.NewToken(token.BitOr, lexer.pos, lexer.line, "|"))
 			}
-		case rune('&'):
+		case '&':
 			if lexer.peek() == '&' {
-				tokens = append(tokens, token.NewToken(token.LogOr, lexer.pos, lexer.tokens, "&&"))
+				tokens = append(tokens, token.NewToken(token.LogOr, lexer.pos, lexer.line, "&&"))
 				lexer.pos++
 			} else {
-				tokens = append(tokens, token.NewToken(token.BitAnd, lexer.pos, lexer.tokens, "&"))
+				tokens = append(tokens, token.NewToken(token.BitAnd, lexer.pos, lexer.line, "&"))
 			}
-		case rune('~'):
-			tokens = append(tokens, token.NewToken(token.BitNot, lexer.pos, lexer.tokens, "~"))
-			// other
+		case ':':
+			if lexer.peek() == ':' {
+				tokens = append(tokens, token.NewToken(token.ColonColon, lexer.pos, lexer.line, "::"))
+				lexer.pos++
+			} else {
+				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.line, "invalid token ':' expected '::'"))
+			}
+		case '\'':
+			var v rune
+			start := lexer.pos
+			if !lexer.isAtEnd() && lexer.peek() != '\'' && lexer.peek() != '\n' {
+				v = lexer.advance()
+			}
+
+			if lexer.peek() == '\'' {
+				lexer.advance()
+				tokens = append(tokens, token.NewToken(token.Char, start, lexer.line, string(v)))
+			} else {
+				RawErrs = append(RawErrs, newErrPos(start, lexer.line, "unterminated char literal"))
+			}
+		// other
+		case '"':
+			tok, err := lexer.string()
+			if err.message != "" {
+				RawErrs = append(RawErrs, err)
+			} else {
+				tokens = append(tokens, tok)
+			}
+		case '#':
+			for !lexer.isAtEnd() && lexer.peek() != '\n' {
+				lexer.advance()
+			}
 		default:
 			if unicode.IsLetter(c) || c == '_' {
 				tokens = append(tokens, lexer.identOrKey())
 			} else if unicode.IsDigit(c) {
 				tokens = append(tokens, lexer.number())
 			} else {
-				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.tokens, fmt.Sprint("unexpected char ", string(c))))
+				RawErrs = append(RawErrs, newErrPos(lexer.pos, lexer.line, fmt.Sprint("unexpected char '", string(c), "'")))
 			}
 		}
 	}
