@@ -49,6 +49,8 @@ const (
 	WhileK
 	ForK
 	TypeK
+	False
+	True
 
 	//literals
 	IntL

@@ -1,0 +1,11 @@
+expression = literal
+           | unary
+           | binary
+           | grouping :
+
+literal = INT | FLOAT | STRING | "true" | "false" ;
+grouping = "(" expression ")"
+unary = ( "-" | "~" | "!" ) expression
+binary = expression operator expression
+operator = "==" | "!=" | "<" | "<=" | ">" | ">="
+         | "+" | "-" | "*" | "/"

@@ -84,6 +84,8 @@ func (lexer *Lexer) identOrKey() token.Token {
 		"while": token.WhileK,
 		"for":   token.ForK,
 		"type":  token.TypeK,
+		"false": token.False,
+		"true":  token.True,
 	}
 	start := lexer.pos - 1
 	for unicode.IsLetter(lexer.peek()) || unicode.IsDigit(lexer.peek()) || lexer.peek() == '_' {
