@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"valley/lexer"
+	"valley/token"
+	"valley/expr"
 )
 
 func main() {

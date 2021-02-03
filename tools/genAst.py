@@ -30,8 +30,8 @@ if len(args) != 2:
 
 outputDir = args[1]
 defineAst(outputDir, [
-    "Binary   : left Expr, operator token.Token, right Expr",
-    "Grouping : expression Expr",
-    "Literal  : value interface {}",
-    "Unary    : operator token.Token, right Expr"
+    "Binary   : Left Expr, Operator token.Token, Right Expr",
+    "Grouping : Expression Expr",
+    "Literal  : Value interface {}",
+    "Unary    : Operator token.Token, Right Expr"
 ])

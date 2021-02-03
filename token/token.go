@@ -65,7 +65,7 @@ type Token struct {
 	kind    int
 	col     int
 	line    int
-	literal string
+	Literal string
 }
 
 // NewToken constructs a token
