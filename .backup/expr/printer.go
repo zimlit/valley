@@ -28,9 +28,9 @@ func (astPrinter AstPrinter) parenthesize(name string, exprs ...Expr) string {
 	str := ""
 	str += "("
 	str += name
-	for i := 0; i < len(exprs); i++ {
+	for _, exp  := range exprs {
 		str += " "
-		str += fmt.Sprint(exprs[i].Accept(astPrinter))
+		str += fmt.Sprint(exp.Accept(astPrinter))
 	}
 	str += ")"
 

@@ -52,17 +52,20 @@ const (
 	False
 	True
 
-	//literals
+	// literals
 	IntL
 	FloatL
 	Ident
 	StringL
 	Char
+
+	// special
+	EOF
 )
 
 // Token represents a token
 type Token struct {
-	kind    int
+	Kind    int
 	col     int
 	line    int
 	Literal string

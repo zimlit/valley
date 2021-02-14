@@ -4,9 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"valley/lexer"
-	"valley/token"
-	"valley/expr"
 )
 
 func main() {
@@ -17,12 +14,5 @@ func main() {
 		if text == "" {
 			break
 		}
-		l := lexer.NewLexer(text)
-		tokens, _, err := l.Lex()
-		if len(err.Raw) != 0 {
-			fmt.Println(err)
-			continue
-		}
-		fmt.Println(tokens)
 	}
 }
